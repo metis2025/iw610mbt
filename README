@@ -1,0 +1,244 @@
+===============================================================================
+			U S E R  M A N U A L
+
+ Copyright 2014-2021 NXP
+
+ This software file (the File) is distributed by NXP
+ under the terms of the GNU General Public License Version 2, June 1991
+ (the License).  You may use, redistribute and/or modify the File in
+ accordance with the terms and conditions of the License, a copy of which
+ is available by writing to the Free Software Foundation, Inc.,
+ 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or on the
+ worldwide web at http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.
+
+ THE FILE IS DISTRIBUTED AS-IS, WITHOUT WARRANTY OF ANY KIND, AND THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE
+ ARE EXPRESSLY DISCLAIMED.  The License provides additional details about
+ this warranty disclaimer.
+
+===============================================================================
+
+1) FOR DRIVER BUILD
+
+	Goto source code directory mbt_src/.
+		make [clean] build
+	The driver binary can be found in ../bin_xxxx_bt directory.
+	The driver code supports Linux kernel from 2.6.32 to 5.14.2.
+
+2) FOR DRIVER INSTALL
+
+	a) Copy sdsd8997_combo_v4 | usbusb8997_combo_v4.bin ... to /lib/firmware/nxp/ directory,
+	   create the directory if it doesn't exist.
+	b) Install bluetooth driver,
+		insmod btxxx.ko [fw_name=nxp/sdxxx.bin]
+	c) Support multi chips with different module parameters
+		copy bt_mod_param.cfg to /lib/firmware/nxp/ directory
+		insmod btxxx.ko bt_mod_para=nxp/bt_mod_para.cfg
+		bt_mod_para:
+			path of module parameter file for bluetooth driver
+			path started with nxp/
+	d) Uninstall bluetooth driver,
+		hciconfig hciX down
+		rmmod btxxx | mbtxxx
+
+	There are some other parameters for debugging purpose etc. Use modinfo to check details.
+	  The bit settings of drv_mode are,
+		Bit 0: BT/AMP/BLE
+	  mbt_drvdbg=<bit mask of driver debug message control>
+	  psmode=1|0 <enable PS mode (default) | disable PS mode>
+	  dts_enable=1|0 <Disable DTS | Enable DTS (default)>
+	  bt_name=<BT interface name>
+	  fw=0|other <Skip firmware download | Download firmware (default)>
+	  bt_req_fw_nowait=0|1 <use request_firmware API (default) | use request_firmware_nowait API>
+	  bt_req_fw_nowait=0|1 <use request_firmware API (default) | use request_firmware_nowait API>
+	  init_cfg=<init config (MAC addresses, registers etc.) file name>
+		e.g. copy bt_init_cfg.conf to firmware directory, init_cfg=nxp/bt_init_cfg.conf
+      bt_mac=xx:xx:xx:xx:xx:xx <override the MAC address (in hex)>
+      cal_cfg=<BT CAL data config file name>
+		e.g. copy bt_cal_data.conf to firmware directory, cal_cfg=nxp/bt_cal_data.conf
+      cal_cfg_ext=<CAL data config file name>
+		e.g. copy cal_data.conf to firmware directory, cal_cfg_ext=nxp/cal_data.conf
+      init_cmds=<init commands config file name>
+		e.g. copy bt_init_cmds.conf to firmware directory, init_cmds=nxp/bt_init_cmds.conf
+
+	  mbt_gpio_pin=<GPIO pin to interrupt host. 0xFFFF: disable GPIO interrupt mode; Others: GPIO pin assigned to generate pulse to host.>
+
+	btindrst = Independent reset configuration; high byte:GPIOpin;low byte:MODE
+
+	<MODE> :
+		0x00 : disable independent reset
+		0x01 : enable out-band gpio independent reset.
+		0x02 : enable in-band independent reset
+	<GPIOpin> :
+		0xFF : default GPIO pins will be used. Currently for BT it is GPIO[15].
+		0xXX : specified GPIO pin number will be used for out-band reset.
+
+	Example:
+		btindrst=0x0e01        : outband-reset, gpio pin 14
+		btindrst=0xff01        : outband-reset, use firmware default GPIO pin
+
+	Note: On some platforms (e.g. PXA910/920) double quotation marks ("") need to used
+	for module parameters.
+		insmod btxxx.ko "<para1> <para2> ..."
+
+3) cat /proc/mbt/hcix/status
+	This command is used to get driver status.
+
+4) cat /proc/mbt/hcix/config
+	This command is used to get the current driver settings.
+
+5) proc commands to config bluetooth parameters
+
+mbt_drvdbg=[n]
+	This command is used to set the bit mask of driver debug message control.
+
+	bit 0:  MSG  		PRINTM(MSG,...)
+	bit 1:  FATAL		PRINTM(FATAL,...)
+	bit 2:  ERROR		PRINTM(ERROR,...)
+	bit 3:  DATA 		PRINTM(DATA,...)
+	bit 4:  CMD  		PRINTM(CMD,...)
+	bit 5:  EVENT		PRINTM(EVENT,...)
+	bit 6:  INTR		PRINTM(INTR,...)
+	...
+	bit 16: DAT_D		PRINTM(DAT_D,...), DBG_HEXDUMP(DAT_D,...)
+	bit 17: CMD_D		PRINTM(CMD_D,...), DBG_HEXDUMP(CMD_D,...)
+	...
+	bit 28: ENTRY		PRINTM(ENTRY,...), ENTER(), LEAVE()
+	bit 29: WARN 		PRINTM(WARN,...)
+	bit 30: INFO 		PRINTM(INFO,...)
+
+	Usage:
+		echo "drvdbg=0x7" > /proc/mbt/hcix/config		#enable MSG,FATAL,ERROR messages
+
+gpio_gap=[n]
+	This command is used to configure the host sleep parameters.
+
+	bit 8:0  -- Gap
+	bit 16:8 -- GPIO
+	where GPIO is the pin number of GPIO used to wakeup the host. It could be any valid
+		GPIO pin# (e.g. 0-7) or 0xff (Interface, e.g. SDIO will be used instead).
+	where Gap is the gap in milliseconds between wakeup signal and wakeup event
+		or 0xff for special setting when GPIO is used to wakeup host.
+
+	Usage:
+		echo "gpio_gap=0xff80" > /proc/mbt/hcix/config   	# use Interface (e.g. SDIO)
+		echo "hscfgcmd=1" > /proc/mbt/hcix/config		# gap = 0x80
+
+		echo "gpio_gap=0x03ff" > /proc/mbt/hcix/config   	# use gpio 3
+		echo "hscfgcmd=1" > /proc/mbt/hcix/config		# and special host sleep mode
+
+psmode=[n]
+	This command is used to enable/disable auto sleep mode
+
+	where the option is:
+			1 	-- Enable auto sleep mode
+			0 	-- Disable auto sleep mode
+
+	Usage:
+		echo "psmode=1" > /proc/mbt/hcix/config			#enable power save mode
+		echo "idle_timeout=0x0100" > /proc/mbt/hcix/config		#configure idle, timeout value in ms
+		echo "pscmd=1" > /proc/mbt/hcix/config
+
+		echo "psmode=0" > /proc/mbt/hcix/config			#disable power save mode
+		echo "pscmd=1" > /proc/mbt/hcix/config
+
+6) Use hcitool to issue raw hci command, refer to hcitool manual
+
+	Usage: Hcitool cmd <ogf> <ocf> [Parameters]
+
+	1.Interface Control Command
+	  hcitool cmd 0x3f 0x5b 0xf5 0x01 0x00    --Enable All interface
+	  hcitool cmd 0x3f 0x5b 0xf5 0x01 0x01    --Enable Wlan interface
+	  hcitool cmd 0x3f 0x5b 0xf5 0x01 0x02    --Enable BT interface
+	  hcitool cmd 0x3f 0x5b 0xf5 0x00 0x00    --Disable All interface
+	  hcitool cmd 0x3f 0x5b 0xf5 0x00 0x01    --Disable Wlan interface
+	  hcitool cmd 0x3f 0x5b 0xf5 0x00 0x02    --Disable BT interface
+
+proc command to enable BT test mode
+    Usage:
+        echo "test_mode=1" > /proc/mbt/hcix/config       #enable BT test mode
+
+FOR FW RELOAD
+    a) Enable parallel firmware download in driver parameter
+       insmod btxxx.ko fw_serail=0
+
+    b) default fw name for parallel firmware download
+       sd8887_bt_a2.bin
+
+    c) Trigger FW reload
+	echo "fw_reload=1" > /proc/mbt/hcix/debug    		    # start inband reset and fw reload.
+	echo "fw_reload=2" > proc/mbt/hcix/debug       		    # start fw reload
+
+    (Note: This feature should works on SD8977/SD8997 board,
+           For CAC-A2 board, only works on the board which supports parallel fw download)
+
+proc command to block cmd/data from upper layer of one interface
+    Usage:
+        echo "block=1" > /proc/mbt/hciX/config            #block cmd/data
+        echo "block=0" > /proc/mbt/hciX/config            #no block
+
+==============================================================================
+			U S E R  M A N U A L  F O R  B T A P P
+
+1) COMPILATION:
+---------------
+	Prerequisite:
+		Android:
+			Please make sure that you have cloned the android source code and build environment is ready.
+		IMX Linux:
+			Please make sure you have installed 'gcc-aarch64-linux-gnu'.
+
+	•Android [using android build environment]
+		1.Go to android root directory <android_root_directory> in your cloned code and give following commands
+			a.source build/envsetup.sh
+			b.lunch command [Ex: lunch evk_8mq-userdebug]
+		2.Create a new directory with name btapp in  <android_root_directory>/packages/modules/Bluetooth/system/tools/
+		3.Copy all files from btapp directory into this newly created directory and do ‘mm’ in this directory.
+		4.btapp executable file will be created in ‘system/bin’ folder in out directory.
+		  [ex: <android_root_directory>/out/target/product/evk_8mq/system/bin/btapp]
+
+	•IMX Linux
+		1.Install gcc-aarch64-linux-gnu [apt install gcc-aarch64-linux-gnu]
+		2.Create a directory with name btapp
+		3.Copy all files from btapp directory into this newly created directory
+		4.Compile btapp with below command
+		  aarch64-linux-gnu-gcc bt_main.c -o btapp.out
+		5.Copy btapp.out in imx linux
+
+2) USAGE:
+---------
+	btapp [options] devicename ogf ocf [command content]
+	[options]: v : verbose h : help b : baudrate
+	devicename: UART charport
+	ogf: OGF of the command
+	ocf: OCF of the command
+	[command content]: Parameters of the command if any
+
+	How to use Binaries:
+		btapp : for Android
+		btapp.out : for IMX Linux
+
+	Prerequisite:
+		Android:
+			1. Please make sure fw is loaded and bluetooth is turned off from the GUI.
+			2. Push the btapp executable binary to /system/bin folder to access btapp executable from any directory.
+		IMX Linux:
+			1.Once fw is downloaded, please do not do hciattach.
+
+	Ex:
+	For Android:
+		1|evk_8mq:/ # btapp ttymxc2 0x03 0x03
+		ogf:3, ocf:3 opcode:c03,  argc = 2
+		< HCI Command: ogf 0x03, ocf 0x0003, plen 4
+		  01 03 0C 00
+		> HCI Event: 0x0e plen 4
+		  01 03 0C 00
+
+	For IMX Linux:
+		root@imx8mmevk:~# ./btapp -b 115200 ttymxc0 03 03
+		ogf:3, ocf:3 opcode:c03,  argc = 2
+		< HCI Command: ogf 0x03, ocf 0x0003, plen 4
+		  01 03 0C 00
+		> HCI Event: 0x0e plen 4
+		  01 03 0C 00
+		root@imx8mmevk:~#

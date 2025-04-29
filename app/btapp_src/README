@@ -1,0 +1,82 @@
+===============================================================================
+		U S E R   M A N U A L  F O R   B T A P P
+
+			Copyright 2023 NXP
+
+===============================================================================
+
+BTAPP Compilation Instructions:
+
+-------------------------------------
+BTAPP COMPILATION WITH ANDROID NDK
+-------------------------------------
+  1. Download the latest NDK from the provided link and unzip it.
+     https://developer.android.com/ndk/downloads
+
+  2. Set NDK_PATH and export clang toolchain.
+     Example: export CC=$(NDK_PATH)/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang
+
+  3. Navigate to btapp's Android directory(app/btapp/android) and run "make all" to compile.
+
+  4. The "btapp_imx_android" binary will be generated.
+
+
+----------------------------------------------
+BTAPP COMPILATION WITH LINUX YOCTO TOOLCHAIN
+----------------------------------------------
+  1. Install the Yocto-compatible toolchain for your Linux BSP version.
+     Example:For Linux BSP-6.1.1, install toolchain 6.1-langdale from NXP Internal Portal
+     http://shlinux12.ap.freescale.net/Yocto_SDK/6.1/6.1.y-1.0.0-langdale-GCC12.2/
+
+  2. After installation, export the toolchain using the given command.
+     Example : $source /opt/fsl-imx-internal-xwayland/<Your_Toolchain_Name>/environment-setup-armv8a-poky-linux
+
+  3. Go to btapp's Linux directory((app/btapp/linux) and run "make all" to compile.
+
+  4. The "btapp_imx_lnx" binary will be created.
+
+----------------------------------------------
+BTAPP COMPILATION WITH x86 LINUX(U16)
+----------------------------------------------
+  1. Go to btapp's Linux directory((app/btapp/linux) and run "make all" to compile.
+
+  2. The "btapp_linux" binary will be created.
+
+
+USAGE OF BTAPP
+---------------
+Prerequisite for Usage:
+
+For Android:
+	Make sure firmware is downloaded and make sure NO Bluetooth service should be running
+        before launching btapp.Push compiled "btapp_imx_android" binary in /system/bin.
+
+For IMX Linux:
+	Download FW and make sure No bluetooth services (eg. bluetoothd) should be running before starting btapp.
+
+
+	btapp [options] devicename ogf ocf [command content]
+	[options]: v : verbose h : help b : baudrate
+	devicename: UART charport
+	ogf: OGF of the command
+	ocf: OCF of the command
+	[command content]: Parameters of the command if any
+
+
+Example:
+	For Android:
+		1|evk_8mq:/ # btapp_imx_android ttymxc2 0x03 0x03
+		ogf:3, ocf:3 opcode:c03,  argc = 2
+		< HCI Command: ogf 0x03, ocf 0x0003, plen 4
+		  01 03 0C 00
+		> HCI Event: 0x0e plen 4
+		  01 03 0C 00
+
+	For IMX Linux:
+		root@imx8mmevk:~# ./btapp_imx_lnx -b 115200 ttymxc0 03 03
+		ogf:3, ocf:3 opcode:c03,  argc = 2
+		< HCI Command: ogf 0x03, ocf 0x0003, plen 4
+			01 03 0C 00
+		> HCI Event: 0x0e plen 4
+			01 03 0C 00
+		root@imx8mmevk:~#
