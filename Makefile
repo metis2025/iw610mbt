@@ -25,13 +25,13 @@ CONFIG_DEBUG=1
 #############################################################################
 # Multi-chip sets
 #############################################################################
-CONFIG_USB8897=y
-CONFIG_USB8997=y
-CONFIG_USB8978=y
-CONFIG_USB9097=y
+CONFIG_USB8897=n
+CONFIG_USB8997=n
+CONFIG_USB8978=n
+CONFIG_USB9097=n
 CONFIG_USBIW610=y
-CONFIG_USBIW624=y
-CONFIG_USB9098=y
+CONFIG_USBIW624=n
+CONFIG_USB9098=n
 
 #############################################################################
 # Select Platform Tools
